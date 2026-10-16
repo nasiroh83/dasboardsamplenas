@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Markah Pelajar TVET</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #f0f2f7;
+      color: #1f2328;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      background: #1a2235;
+      color: #fff;
+      padding: 0 28px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 15.5px;
+    }
+    .topbar-brand span { color: #64a8f7; }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .sync-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+    .sync-dot.loading { background: #f59e0b; animation: none; }
+    .sync-dot.error   { background: #ef4444; animation: none; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.35} }
+    .last-update { font-size: 11.5px; color: #64748b; }
+
+    /* SETUP BANNER */
+    .setup-banner {
+      background: #fef9ed;
+      border: 1px solid #fbbf24;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 24px 0;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #78350f;
+      display: none;
+    }
+    .setup-banner.show { display: block; }
+    .url-input-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .url-input {
+      flex: 1; min-width: 300px;
+      border: 1px solid #fbbf24;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12.5px;
+      outline: none;
+      background: #fff;
+    }
+
+    /* BUTTONS */
+    .btn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-blue  { background: #3b82d4; color: #fff; }
+    .btn-blue:hover { background: #2563eb; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-green:hover { background: #15803d; }
+
+    /* FILTERS BAR */
+    .filters-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-group { display: flex; align-items: center; gap: 8px; }
+    .filter-label { font-size: 12px; font-weight: 600; color: #57606a; white-space: nowrap; }
+    .filter-select {
+      border: 1px solid #d0d5dd;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12.5px;
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-select:focus { border-color: #3b82d4; }
+    .filter-divider { width: 1px; height: 22px; background: #e5e7eb; }
+    .search-box {
+      border: 1px solid #d0d5dd;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12.5px;
+      outline: none;
+      width: 200px;
+    }
+    .search-box:focus { border-color: #3b82d4; }
+
+    /* CONTENT */
+    .content { padding: 20px 24px; }
+
+    /* KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 18px;
+      border-top: 4px solid transparent;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .kpi-card.blue   { border-top-color: #3b82d4; }
+    .kpi-card.green  { border-top-color: #16a34a; }
+    .kpi-card.amber  { border-top-color: #d97706; }
+    .kpi-card.red    { border-top-color: #dc2626; }
+    .kpi-card.purple { border-top-color: #7c5cd8; }
+    .kpi-card.teal   { border-top-color: #0891b2; }
+    .kpi-label { font-size: 11px; font-weight: 700; color: #57606a; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 800; color: #1f2328; line-height: 1.1; }
+    .kpi-sub   { font-size: 11.5px; color: #57606a; margin-top: 4px; }
+
+    /* CATEGORY CARDS */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .cat-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .cat-icon {
+      width: 46px; height: 46px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 22px;
+    }
+    .cat-icon.high { background: #dcfce7; }
+    .cat-icon.mid  { background: #fef3c7; }
+    .cat-icon.low  { background: #fee2e2; }
+    .cat-info { flex: 1; }
+    .cat-title { font-size: 12px; font-weight: 700; color: #57606a; text-transform: uppercase; letter-spacing: .05em; }
+    .cat-count { font-size: 28px; font-weight: 800; line-height: 1.1; }
+    .cat-count.high { color: #16a34a; }
+    .cat-count.mid  { color: #d97706; }
+    .cat-count.low  { color: #dc2626; }
+    .cat-range { font-size: 11.5px; color: #57606a; }
+    .cat-bar { height: 5px; border-radius: 3px; margin-top: 6px; background: #f0f2f5; }
+    .cat-bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+    .cat-bar-fill.high { background: #16a34a; }
+    .cat-bar-fill.mid  { background: #d97706; }
+    .cat-bar-fill.low  { background: #dc2626; }
+
+    /* GRID LAYOUTS */
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .row-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 900px) { .row-2, .row-3, .cat-grid { grid-template-columns: 1fr; } }
+
+    /* CARD */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .card-title    { font-size: 13.5px; font-weight: 700; color: #1f2328; }
+    .card-subtitle { font-size: 11.5px; color: #57606a; margin-top: 2px; }
+    .card-body     { padding: 16px 18px; }
+    .badge-pill {
+      background: #f0f4ff; color: #3b5bdb;
+      border-radius: 20px; padding: 3px 10px;
+      font-size: 11.5px; font-weight: 600;
+      border: 1px solid #c5d2fb; white-space: nowrap;
+    }
+
+    /* ASSESSMENT BARS */
+    .assess-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .assess-code { width: 32px; font-size: 12px; font-weight: 700; color: #1f2328; flex-shrink: 0; }
+    .assess-track { flex: 1; background: #f0f2f5; border-radius: 6px; height: 22px; overflow: hidden; }
+    .assess-fill {
+      height: 100%; border-radius: 6px; transition: width .4s;
+      display: flex; align-items: center; padding-left: 8px;
+      font-size: 11.5px; font-weight: 700; color: #fff; min-width: 36px;
+    }
+    .assess-meta { width: 80px; font-size: 11.5px; color: #57606a; text-align: right; flex-shrink: 0; }
+
+    /* DISTRIBUTION BARS */
+    .dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12.5px; }
+    .dist-label { width: 70px; color: #57606a; font-weight: 600; flex-shrink: 0; }
+    .dist-track { flex: 1; background: #f0f2f5; border-radius: 4px; height: 16px; overflow: hidden; }
+    .dist-fill  { height: 100%; border-radius: 4px; transition: width .4s; }
+    .dist-count { width: 32px; text-align: right; color: #57606a; font-size: 12px; flex-shrink: 0; }
+
+    /* TABLES */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .data-table th {
+      background: #f7f8fa; padding: 9px 10px;
+      text-align: left; font-size: 11.5px; font-weight: 700;
+      color: #57606a; text-transform: uppercase; letter-spacing: .04em;
+      border-bottom: 1px solid #e5e7eb; white-space: nowrap;
+    }
+    .data-table td { padding: 9px 10px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #f7f8fb; }
+
+    /* CHIPS */
+    .chip { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+    .chip-high { background: #dcfce7; color: #166534; }
+    .chip-mid  { background: #fef3c7; color: #92400e; }
+    .chip-low  { background: #fee2e2; color: #991b1b; }
+
+    .score-cell { font-weight: 700; }
+    .score-high { color: #16a34a; }
+    .score-mid  { color: #d97706; }
+    .score-low  { color: #dc2626; }
+
+    .mini-bar-wrap  { display: flex; align-items: center; gap: 5px; }
+    .mini-bar-track { width: 60px; height: 6px; background: #f0f2f5; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .mini-bar-fill  { height: 100%; border-radius: 3px; }
+
+    /* MISC */
+    .empty-msg { padding: 32px; text-align: center; color: #9ca3af; font-size: 13px; }
+    .radar-wrap { display: flex; justify-content: center; padding: 4px 0; }
+
+    /* LOADING OVERLAY */
+    #loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,.8);
+      z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 14px;
+      font-size: 14px; color: #57606a;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #3b82d4;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <span>Memuat data...</span>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect width="26" height="26" rx="6" fill="#3b82d4"/>
+      <path d="M5 19l5-9 4 7 3-4 4 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Dashboard Markah Pelajar &nbsp;<span>TVET</span>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-status">
+      <div class="sync-dot loading" id="sync-dot"></div>
+      <span id="sync-text">Menyambung...</span>
+    </div>
+    <div class="last-update" id="last-update"></div>
+    <button class="btn btn-blue" onclick="loadData()" style="font-size:12px;padding:5px 12px;">&#x21ba; Muat Semula</button>
+  </div>
+</div>
+
+<!-- SETUP BANNER -->
+<div class="setup-banner" id="setup-banner">
+  <strong id="setup-title">&#9888;&#65039; Cara Sambungkan Google Sheets</strong><br>
+  Disebabkan had CORS pelayar, gunakan <b>salah satu kaedah</b> di bawah:<br><br>
+  <b>Kaedah 1 &#8212; Google Apps Script (Disyorkan, auto-refresh)</b><br>
+  1. Buka <a href="https://script.google.com" target="_blank">script.google.com</a> &#8594; New Project<br>
+  2. Tampal kod berikut, ganti URL dengan URL CSV anda, kemudian Deploy &#8594; Web app (Execute as: Me, Access: Anyone):<br>
+  <code style="display:block;background:#fff8e1;padding:8px 10px;border-radius:5px;font-size:11.5px;margin:6px 0;word-break:break-all;">function doGet(){var url="GANTI_URL_CSV_ANDA";var r=UrlFetchApp.fetch(url);return ContentService.createTextOutput(r.getContentText()).setMimeType(ContentService.MimeType.TEXT);}</code>
+  3. Salin URL Web App &#8594; tampal di sini:
+  <div class="url-input-row">
+    <input class="url-input" id="sheet-url-input" placeholder="https://script.google.com/macros/s/.../exec" />
+    <button class="btn btn-blue" onclick="saveSheetUrl()">&#10004; Guna URL ini</button>
+  </div>
+  <hr style="border:none;border-top:1px solid #fbbf24;margin:14px 0 10px;">
+  <b>Kaedah 2 &#8212; Tampal CSV terus (Segera, tiada auto-refresh)</b><br>
+  Buka Google Sheet &#8594; <b>File &#8594; Download &#8594; CSV</b> &#8594; buka dengan Notepad &#8594; salin semua &#8594; tampal di sini:
+  <div style="margin-top:6px;">
+    <textarea id="csv-paste" rows="4" style="width:100%;border:1px solid #fbbf24;border-radius:6px;padding:8px;font-size:12px;font-family:monospace;resize:vertical;" placeholder="Tampal kandungan CSV di sini..."></textarea>
+    <button class="btn btn-green" onclick="loadFromPaste()" style="margin-top:6px;">&#9654; Muat dari CSV</button>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <div class="filter-group">
+    <span class="filter-label">Assessment:</span>
+    <select class="filter-select" id="f-assessment">
+      <option value="overall">Keseluruhan (Purata)</option>
+      <option value="U1">U1 &#8212; Ujian Unit 1</option>
+      <option value="U2">U2 &#8212; Ujian Unit 2</option>
+      <option value="P1">P1 &#8212; Praktikal 1</option>
+      <option value="A1">A1 &#8212; Tugasan 1</option>
+      <option value="A2">A2 &#8212; Tugasan 2</option>
+      <option value="A3">A3 &#8212; Tugasan 3</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group">
+    <span class="filter-label">Kategori:</span>
+    <select class="filter-select" id="f-category">
+      <option value="all">Semua</option>
+      <option value="tinggi">Tinggi (&ge;80)</option>
+      <option value="sederhana">Sederhana (60&#8211;79)</option>
+      <option value="rendah">Rendah (&lt;60)</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <input class="search-box" id="f-search" placeholder="Cari nama pelajar..." />
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Jumlah Pelajar</div>
+      <div class="kpi-value" id="kpi-total">&#8212;</div>
+      <div class="kpi-sub" id="kpi-total-sub">dari Google Sheets</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Purata Kelas</div>
+      <div class="kpi-value" id="kpi-avg">&#8212;</div>
+      <div class="kpi-sub">markah / 100</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Tertinggi</div>
+      <div class="kpi-value" id="kpi-max">&#8212;</div>
+      <div class="kpi-sub" id="kpi-max-name">&#8212;</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Terendah</div>
+      <div class="kpi-value" id="kpi-min">&#8212;</div>
+      <div class="kpi-sub" id="kpi-min-name">&#8212;</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">Lulus (&ge;60)</div>
+      <div class="kpi-value" id="kpi-pass">&#8212;</div>
+      <div class="kpi-sub" id="kpi-pass-sub">pelajar</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Gagal (&lt;60)</div>
+      <div class="kpi-value" id="kpi-fail">&#8212;</div>
+      <div class="kpi-sub" id="kpi-fail-sub">pelajar</div>
+    </div>
+  </div>
+
+  <!-- Kategori Tinggi / Sederhana / Rendah -->
+  <div class="cat-grid">
+    <div class="cat-card">
+      <div class="cat-icon high">&#127942;</div>
+      <div class="cat-info">
+        <div class="cat-title">Tinggi</div>
+        <div class="cat-count high" id="cat-high-count">&#8212;</div>
+        <div class="cat-range">Markah &ge; 80</div>
+        <div class="cat-bar"><div class="cat-bar-fill high" id="cat-high-bar" style="width:0%"></div></div>
+      </div>
+      <div style="font-size:20px;font-weight:800;color:#16a34a;min-width:44px;text-align:right;" id="cat-high-pct">&#8212;</div>
+    </div>
+    <div class="cat-card">
+      <div class="cat-icon mid">&#128202;</div>
+      <div class="cat-info">
+        <div class="cat-title">Sederhana</div>
+        <div class="cat-count mid" id="cat-mid-count">&#8212;</div>
+        <div class="cat-range">Markah 60 &#8211; 79</div>
+        <div class="cat-bar"><div class="cat-bar-fill mid" id="cat-mid-bar" style="width:0%"></div></div>
+      </div>
+      <div style="font-size:20px;font-weight:800;color:#d97706;min-width:44px;text-align:right;" id="cat-mid-pct">&#8212;</div>
+    </div>
+    <div class="cat-card">
+      <div class="cat-icon low">&#9888;&#65039;</div>
+      <div class="cat-info">
+        <div class="cat-title">Rendah</div>
+        <div class="cat-count low" id="cat-low-count">&#8212;</div>
+        <div class="cat-range">Markah &lt; 60</div>
+        <div class="cat-bar"><div class="cat-bar-fill low" id="cat-low-bar" style="width:0%"></div></div>
+      </div>
+      <div style="font-size:20px;font-weight:800;color:#dc2626;min-width:44px;text-align:right;" id="cat-low-pct">&#8212;</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Assessment Bars + Distribution -->
+  <div class="row-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Purata Markah Setiap Assessment</div>
+          <div class="card-subtitle">Perbandingan 6 assessment U1, U2, P1, A1, A2, A3</div>
+        </div>
+        <span class="badge-pill">6 assessment</span>
+      </div>
+      <div class="card-body" id="assess-bars">
+        <div class="empty-msg">Memuat...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Taburan Markah</div>
+          <div class="card-subtitle">Bilangan pelajar mengikut julat markah</div>
+        </div>
+      </div>
+      <div class="card-body" id="dist-body">
+        <div class="empty-msg">Memuat...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Radar + At-Risk -->
+  <div class="row-3">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Carta Radar &#8212; Prestasi Kelas</div>
+          <div class="card-subtitle">Purata markah (%) setiap assessment</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="radar-wrap">
+          <svg id="radar-svg" width="320" height="280" viewBox="0 0 320 280"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Pelajar Berisiko</div>
+          <div class="card-subtitle">Markah keseluruhan &lt; 60 &#8212; perlu perhatian</div>
+        </div>
+        <span class="badge-pill" id="risk-badge">0</span>
+      </div>
+      <div class="card-body" style="padding:0 0 4px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Pelajar</th>
+              <th style="text-align:right">Markah</th>
+              <th>Kategori</th>
+            </tr>
+          </thead>
+          <tbody id="risk-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full student table -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Senarai Markah Pelajar</div>
+        <div class="card-subtitle" id="table-subtitle">Semua pelajar</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <select class="filter-select" id="sort-select" style="font-size:12px;">
+          <option value="name">Susun: Nama</option>
+          <option value="overall-desc">Susun: Markah &#8595;</option>
+          <option value="overall-asc">Susun: Markah &#8593;</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0;overflow-x:auto;">
+      <table class="data-table" style="min-width:780px;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nama Pelajar</th>
+            <th>U1</th>
+            <th>U2</th>
+            <th>P1</th>
+            <th>A1</th>
+            <th>A2</th>
+            <th>A3</th>
+            <th>Purata</th>
+            <th>Kategori</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="student-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const STORAGE_KEY   = "tvet_sheet_url";
+  const DEFAULT_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRjiBNUkylmvoUbaHSPRPPq0aT8qWrT7wxgRafG27XKWxEZHCwAzIdMt8iJJfl8dg/pub?gid=648713374&single=true&output=csv";
+  const REFRESH_MS    = 30000;
+  const ASSESSMENTS   = ["U1","U2","P1","A1","A2","A3"];
+  const ASSESS_LABELS = { U1:"Ujian Unit 1", U2:"Ujian Unit 2", P1:"Praktikal 1", A1:"Tugasan 1", A2:"Tugasan 2", A3:"Tugasan 3" };
+  const ASSESS_COLORS = { U1:"#3b82d4", U2:"#7c5cd8", P1:"#0891b2", A1:"#16a34a", A2:"#d97706", A3:"#dc2626" };
+
+  const STATIC_CSV = `,,,,,,,,,,,
+,Bil,No Pendaftaran,Nama Pelajar,U1,U2,A1,A2,A3,P1,Jumlah Markah,GRED
+,1,R01SPK26F001,AISYAH BINTI OTHMAN,55,48.3,90,95,97.5,93,81,A
+,2,R01SPK26F003,NUR AFRINA DANIA BINTI AMIN,53.3,56.7,88,82.5,92,77,77,A-
+,3,R01SPK26F005,ALEESYA SOFEA BINTI MOHD ZAIRI SHAH,76.7,70,83,95,95,73,84,A
+,4,R01SPK26F019,NUR SYAKIRAH AFIFI BINTI SABRI,80,66.7,83,95,97.5,95,87,A
+,5,R01SPK26F020,NOR MASEZZAYU BINTI MAJID,53.3,36.7,82,82.5,92,82,73,B+
+,6,R01SPK26F022,NUR AINA NAJWA BINTI MOHD AMIN,36.7,10,82,82.5,87.5,64,64,B-
+,7,R01SPK26F023,SAFIA ELYANA BINTI ROS SHAM,60,53.3,83,82.5,89.5,77,76,A-
+,8,R01SPK26F024,SOFEA ELISA BINTI ROS SHAM,43.3,70,83,87,89.5,72,76,A-
+,9,R01SPK26F028,AINA ADAWIYAH BINTI MEOR AZHAR,63.3,83.3,89.5,84.5,84.5,85,82,A
+,10,R01SPK26F030,NURZILA ZULAIKA BINTI MOHZAN,65,48.3,90,95,100,93,83,A
+,11,R01SPK26F032,NURUL NAJWA BINTI MOHD FAUZI,68.3,53.3,83,93,98,82,81,A
+,12,R01SPK26F034,NUR ARINA HUSNA BINTI MOHD ASUAD,0,51.7,81,82.5,87.5,67,65,B
+,13,R01SPK26F035,PUTRI NURBALQIS BINTI MOHD NIZAM,50,21.7,83,80,85,73,68,B
+,14,R01SPK26F037,NUR AZWANI SHAZIRA BINTI AZRI,60,35,83,80,75,69,69,B
+,15,R01SPK26F040,MUHAMMAD KHALIS MUQRI BIN NASRULRIDZUAN,48.3,53.3,80.5,82.5,77.5,76,71,B+
+,16,R01SPK26F042,MUHAMMAD RUSMAN SUFIAN BIN CHE RONI,60,50,83,82.5,77.5,82,73,B+
+,17,R01SPK26F044,NUR IZZATUL HUSNA BINTI ABDUL HALIM,30,86.7,88,87,82,85,77,A-
+,18,R01SPK26F046,NURUL IMANINA BINTI MOHD KHAIRI,70,55,83,95,100,93,84,A
+,19,R01SPK26F048,MUHAMMAD HARIS HAIKAL BIN SHAIFUL ANUAR,46.7,40,85,74.5,69.5,71,66,F
+,20,R01SPK26F050,MUHAMMAD IRFAN FAWWAZ BIN MOHAMMAD SUFI,61.7,40,83,85,91,90,76,A-
+,21,R01SPK26F052,AHMAD SAFWAN BIN SHUIB,46.7,28.3,58,70,63,67,56,C+
+,22,R01SPK26F053,JULIANA BINTI MOHD JIMMY,48.3,53.3,90,90.5,82,84,76,A-
+,23,R01SPK26F059,ERYN DARWENNA BINTI MAHATHIR,36.7,46.7,88,82.5,87.5,76,72,B+
+,24,R01SPK26F061,NUR IWANI BINTI AZMAN,46.7,51.7,83,95,100,93,80,A
+,25,R01SPK26F062,NUR FARISHA QISTINA BINTI ROHISHAM,60,53.3,83,80,98,79,77,A-
+,26,R01SPK26F063,MUHAMMAD ROHAIZAD BIN MOHD RASHID,65,36.7,80.5,87,82,88,74,B+
+,27,R01SPK26F064,NUR FATIN BALQIS BINTI ROZAIRY,65,70,83,80,95.5,82,80,A
+,28,R01SPK26F067,FARZANA HUSNA BINTI ABDUL TALIB,68.3,63.3,83,92.5,100,93,84,A
+,29,R01SPK26F070,NUR ZAHRA UL MUFHIDA BINTI MOHD EFFENDY,45,33.3,83,84.5,82.5,71,69,B
+,30,R01SPK26F071,KHAIRUNNIESA BINTI ABDULLAH,30,36.7,82,87,92,85,71,B+
+,31,R01SPK26F072,NUR AINSYA BINTI ISMAIL,60,50,79.5,82.5,78,59,70,B+`;
+
+  let allStudents = [];
+  let refreshTimer = null;
+
+  function categoryOf(s) {
+    if (s == null || isNaN(s)) return "lain";
+    if (s >= 80) return "tinggi";
+    if (s >= 60) return "sederhana";
+    return "rendah";
+  }
+  function catChip(s) {
+    const c = categoryOf(s);
+    if (c === "tinggi")    return '<span class="chip chip-high">Tinggi</span>';
+    if (c === "sederhana") return '<span class="chip chip-mid">Sederhana</span>';
+    if (c === "rendah")    return '<span class="chip chip-low">Rendah</span>';
+    return "&#8212;";
+  }
+  function scoreClass(s) {
+    const c = categoryOf(s);
+    if (c === "tinggi")    return "score-high";
+    if (c === "sederhana") return "score-mid";
+    if (c === "rendah")    return "score-low";
+    return "";
+  }
+  function fmt(v)         { return (v == null || isNaN(v)) ? "&#8212;" : v.toFixed(1); }
+  function pct(v, total)  { return total === 0 ? 0 : Math.round((v / total) * 100); }
+  function barColor(s)    { return s >= 80 ? "#16a34a" : s >= 60 ? "#d97706" : "#dc2626"; }
+
+  // CSV PARSER
+  function parseCSV(text) {
+    const allRows = text.trim().split(/\r?\n/);
+    if (allRows.length < 2) return [];
+    const KEYWORDS = ["U1","U2","P1","A1","A2","A3","NAMA","NAME","PELAJAR","STUDENT","BIL"];
+    let headerIdx = -1;
+    for (let i = 0; i < allRows.length; i++) {
+      const up = allRows[i].toUpperCase();
+      if (KEYWORDS.some(k => up.includes(k))) { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) return [];
+    const rows = allRows.slice(headerIdx);
+    const headers = rows[0].split(",").map(h => h.trim().replace(/^"|"$/g,"").trim());
+    const idx = {};
+    headers.forEach((h,i) => { if (h) idx[h.toUpperCase()] = i; });
+    const nameIdx = idx["NAMA PELAJAR"] ?? idx["NAMA"] ?? idx["NAME"] ?? idx["STUDENT"] ?? idx["PELAJAR"] ?? null;
+    if (nameIdx === null) return [];
+    const aIdx = {};
+    ASSESSMENTS.forEach(a => { aIdx[a] = idx[a] ?? null; });
+    const students = [];
+    for (let r = 1; r < rows.length; r++) {
+      const cols = rows[r].split(",").map(c => c.trim().replace(/^"|"$/g,"").trim());
+      const name = cols[nameIdx] || "";
+      if (!name || /^(jumlah|total|purata|average|bil$)/i.test(name)) continue;
+      const s = { name };
+      ASSESSMENTS.forEach(a => {
+        const i = aIdx[a];
+        const raw = (i !== null && cols[i] !== undefined) ? cols[i] : "";
+        s[a] = raw !== "" ? parseFloat(raw) : null;
+        if (isNaN(s[a])) s[a] = null;
+      });
+      const vals = ASSESSMENTS.map(a => s[a]).filter(v => v !== null);
+      s.overall = vals.length ? vals.reduce((x,y) => x+y, 0) / vals.length : null;
+      students.push(s);
+    }
+    return students;
+  }
+
+  function getSheetUrl() { return localStorage.getItem(STORAGE_KEY) || DEFAULT_SHEET; }
+
+  function saveSheetUrl() {
+    const url = document.getElementById("sheet-url-input").value.trim();
+    if (!url) return alert("Sila masukkan URL.");
+    localStorage.setItem(STORAGE_KEY, url);
+    document.getElementById("setup-banner").classList.remove("show");
+    loadData();
+  }
+
+  // RENDER KPIs
+  function renderKPIs(view) {
+    const n = view.length;
+    const scores = view.map(s => s.viewScore).filter(v => v !== null && !isNaN(v));
+    const avg  = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+    const maxS = scores.length ? Math.max(...scores) : null;
+    const minS = scores.length ? Math.min(...scores) : null;
+    const maxStu = view.find(s => s.viewScore === maxS);
+    const minStu = view.find(s => s.viewScore === minS);
+    const pass = view.filter(s => s.viewScore !== null && s.viewScore >= 60).length;
+    const fail = n - pass;
+    document.getElementById("kpi-total").innerHTML     = n || "&#8212;";
+    document.getElementById("kpi-total-sub").textContent = "pelajar berdaftar";
+    document.getElementById("kpi-avg").innerHTML       = fmt(avg);
+    document.getElementById("kpi-max").innerHTML       = fmt(maxS);
+    document.getElementById("kpi-max-name").textContent = maxStu ? maxStu.name : "&#8212;";
+    document.getElementById("kpi-min").innerHTML       = fmt(minS);
+    document.getElementById("kpi-min-name").textContent = minStu ? minStu.name : "&#8212;";
+    document.getElementById("kpi-pass").textContent    = pass;
+    document.getElementById("kpi-pass-sub").textContent= `daripada ${n} pelajar (${pct(pass,n||1)}%)`;
+    document.getElementById("kpi-fail").textContent    = fail;
+    document.getElementById("kpi-fail-sub").textContent= `daripada ${n} pelajar (${pct(fail,n||1)}%)`;
+  }
+
+  // RENDER CATEGORIES
+  function renderCategories(view) {
+    const scores = view.map(s => s.viewScore).filter(v => v !== null && !isNaN(v));
+    const n = scores.length || 1;
+    const high = scores.filter(s => s >= 80).length;
+    const mid  = scores.filter(s => s >= 60 && s < 80).length;
+    const low  = scores.filter(s => s < 60).length;
+    document.getElementById("cat-high-count").textContent = high;
+    document.getElementById("cat-mid-count").textContent  = mid;
+    document.getElementById("cat-low-count").textContent  = low;
+    document.getElementById("cat-high-pct").textContent   = pct(high,n) + "%";
+    document.getElementById("cat-mid-pct").textContent    = pct(mid,n)  + "%";
+    document.getElementById("cat-low-pct").textContent    = pct(low,n)  + "%";
+    document.getElementById("cat-high-bar").style.width   = pct(high,n) + "%";
+    document.getElementById("cat-mid-bar").style.width    = pct(mid,n)  + "%";
+    document.getElementById("cat-low-bar").style.width    = pct(low,n)  + "%";
+  }
+
+  // RENDER ASSESSMENT BARS
+  function renderAssessBars(students) {
+    const el = document.getElementById("assess-bars");
+    if (!students.length) { el.innerHTML = '<div class="empty-msg">Tiada data.</div>'; return; }
+    let html = "";
+    ASSESSMENTS.forEach(a => {
+      const vals = students.map(s => s[a]).filter(v => v !== null && !isNaN(v));
+      const avg  = vals.length ? vals.reduce((x,y)=>x+y,0)/vals.length : 0;
+      const pass = vals.filter(v => v >= 60).length;
+      const col  = ASSESS_COLORS[a];
+      html += `<div class="assess-row">
+        <div class="assess-code">${a}</div>
+        <div class="assess-track">
+          <div class="assess-fill" style="width:${avg}%;background:${col};">${avg.toFixed(1)}</div>
+        </div>
+        <div class="assess-meta">${vals.length ? pct(pass,vals.length) : 0}% lulus</div>
+      </div>`;
+    });
+    el.innerHTML = html;
+  }
+
+  // RENDER DISTRIBUTION
+  function renderDistribution(view) {
+    const el = document.getElementById("dist-body");
+    const scores = view.map(s => s.viewScore).filter(v => v !== null && !isNaN(v));
+    if (!scores.length) { el.innerHTML = '<div class="empty-msg">Tiada data.</div>'; return; }
+    const bands = [
+      { label:"90&#8211;100", min:90, max:101, color:"#16a34a" },
+      { label:"80&#8211;89",  min:80, max:90,  color:"#22c55e" },
+      { label:"70&#8211;79",  min:70, max:80,  color:"#d97706" },
+      { label:"60&#8211;69",  min:60, max:70,  color:"#f59e0b" },
+      { label:"50&#8211;59",  min:50, max:60,  color:"#f97316" },
+      { label:"&lt;50",       min:0,  max:50,  color:"#dc2626" },
+    ];
+    const maxCount = Math.max(...bands.map(b => scores.filter(s => s >= b.min && s < b.max).length), 1);
+    let html = "";
+    bands.forEach(b => {
+      const cnt = scores.filter(s => s >= b.min && s < b.max).length;
+      const w   = Math.round((cnt / maxCount) * 100);
+      html += `<div class="dist-row">
+        <div class="dist-label">${b.label}</div>
+        <div class="dist-track"><div class="dist-fill" style="width:${w}%;background:${b.color};"></div></div>
+        <div class="dist-count">${cnt}</div>
+      </div>`;
+    });
+    el.innerHTML = html;
+  }
+
+  // RENDER RADAR
+  function renderRadar(students) {
+    const svg = document.getElementById("radar-svg");
+    svg.innerHTML = "";
+    if (!students.length) return;
+    const cx = 160, cy = 145, R = 105;
+    const n  = ASSESSMENTS.length;
+    const avgs = ASSESSMENTS.map(a => {
+      const vals = students.map(s => s[a]).filter(v => v !== null && !isNaN(v));
+      return vals.length ? vals.reduce((x,y)=>x+y,0)/vals.length : 0;
+    });
+    const angle = i => (Math.PI * 2 * i / n) - Math.PI / 2;
+    const pt    = (i, r) => ({ x: cx + r * Math.cos(angle(i)), y: cy + r * Math.sin(angle(i)) });
+
+    [20,40,60,80,100].forEach(val => {
+      const r = (val/100)*R;
+      const pts = ASSESSMENTS.map((_,i) => pt(i,r));
+      const d = pts.map((p,i) => `${i===0?"M":"L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")+"Z";
+      const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+      path.setAttribute("d",d); path.setAttribute("fill","none");
+      path.setAttribute("stroke","#e5e7eb"); path.setAttribute("stroke-width","1");
+      svg.appendChild(path);
+      if (val % 40 === 0) {
+        const lp = pt(2,r);
+        const txt = document.createElementNS("http://www.w3.org/2000/svg","text");
+        txt.setAttribute("x", lp.x+4); txt.setAttribute("y", lp.y-3);
+        txt.setAttribute("font-size","9"); txt.setAttribute("fill","#9ca3af");
+        txt.textContent = val; svg.appendChild(txt);
+      }
+    });
+
+    ASSESSMENTS.forEach((a,i) => {
+      const p = pt(i,R);
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1",cx); line.setAttribute("y1",cy);
+      line.setAttribute("x2",p.x.toFixed(1)); line.setAttribute("y2",p.y.toFixed(1));
+      line.setAttribute("stroke","#d0d5dd"); line.setAttribute("stroke-width","1");
+      svg.appendChild(line);
+      const lp = pt(i,R+16);
+      const txt = document.createElementNS("http://www.w3.org/2000/svg","text");
+      txt.setAttribute("x",lp.x.toFixed(1)); txt.setAttribute("y",lp.y.toFixed(1));
+      txt.setAttribute("font-size","11"); txt.setAttribute("fill","#374151");
+      txt.setAttribute("font-weight","700"); txt.setAttribute("text-anchor","middle");
+      txt.setAttribute("dominant-baseline","middle");
+      txt.textContent = a; svg.appendChild(txt);
+    });
+
+    const dataPts = avgs.map((v,i) => pt(i,(v/100)*R));
+    const dPath = dataPts.map((p,i) => `${i===0?"M":"L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")+"Z";
+    const poly = document.createElementNS("http://www.w3.org/2000/svg","path");
+    poly.setAttribute("d",dPath); poly.setAttribute("fill","rgba(59,130,212,0.18)");
+    poly.setAttribute("stroke","#3b82d4"); poly.setAttribute("stroke-width","2");
+    svg.appendChild(poly);
+
+    dataPts.forEach((p,i) => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx",p.x.toFixed(1)); c.setAttribute("cy",p.y.toFixed(1));
+      c.setAttribute("r","4"); c.setAttribute("fill",ASSESS_COLORS[ASSESSMENTS[i]]);
+      c.setAttribute("stroke","#fff"); c.setAttribute("stroke-width","1.5");
+      svg.appendChild(c);
+    });
+  }
+
+  // RENDER AT-RISK
+  function renderAtRisk(students) {
+    const atRisk = students.filter(s => s.overall !== null && s.overall < 60)
+                           .sort((a,b) => a.overall - b.overall);
+    document.getElementById("risk-badge").textContent = atRisk.length;
+    const tbody = document.getElementById("risk-tbody");
+    if (!atRisk.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">Tiada pelajar berisiko</td></tr>';
+      return;
+    }
+    tbody.innerHTML = atRisk.map(s => `<tr>
+      <td>${s.name}</td>
+      <td style="text-align:right"><span class="score-cell score-low">${s.overall.toFixed(1)}</span></td>
+      <td>${catChip(s.overall)}</td>
+    </tr>`).join("");
+  }
+
+  // RENDER STUDENT TABLE
+  function renderStudentTable(list) {
+    const sort = document.getElementById("sort-select").value;
+    let sorted = [...list];
+    if (sort === "overall-desc") sorted.sort((a,b) => (b.overall??-1)-(a.overall??-1));
+    else if (sort === "overall-asc") sorted.sort((a,b) => (a.overall??-1)-(b.overall??-1));
+    else sorted.sort((a,b) => a.name.localeCompare(b.name));
+    document.getElementById("table-subtitle").textContent = `Menunjukkan ${sorted.length} pelajar`;
+    const tbody = document.getElementById("student-tbody");
+    if (!sorted.length) {
+      tbody.innerHTML = '<tr><td colspan="11" class="empty-msg">Tiada rekod dijumpai.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = sorted.map((s,i) => {
+      const cells = ASSESSMENTS.map(a => {
+        const v = s[a];
+        if (v === null || isNaN(v)) return "<td>&#8212;</td>";
+        return `<td><div class="mini-bar-wrap">
+          <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${v}%;background:${barColor(v)};"></div></div>
+          <span class="score-cell ${scoreClass(v)}">${v.toFixed(1)}</span>
+        </div></td>`;
+      }).join("");
+      const ovCls = scoreClass(s.overall);
+      const status = s.overall !== null
+        ? (s.overall >= 60
+            ? '<span style="color:#16a34a;font-weight:700;font-size:11.5px;">Lulus</span>'
+            : '<span style="color:#dc2626;font-weight:700;font-size:11.5px;">Gagal</span>')
+        : "&#8212;";
+      return `<tr>
+        <td style="color:#57606a;">${i+1}</td>
+        <td style="font-weight:600;">${s.name}</td>
+        ${cells}
+        <td><span class="score-cell ${ovCls}" style="font-size:13.5px;">${s.overall !== null ? s.overall.toFixed(1) : "&#8212;"}</span></td>
+        <td>${catChip(s.overall)}</td>
+        <td>${status}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // APPLY FILTERS
+  function applyFilters() {
+    const assess  = document.getElementById("f-assessment").value;
+    const catFilt = document.getElementById("f-category").value;
+    const search  = document.getElementById("f-search").value.trim().toLowerCase();
+    let view = allStudents.map(s => ({
+      ...s,
+      viewScore: assess === "overall" ? s.overall : s[assess],
+    }));
+    if (catFilt !== "all") view = view.filter(s => categoryOf(s.viewScore) === catFilt);
+    if (search)            view = view.filter(s => s.name.toLowerCase().includes(search));
+    renderKPIs(view);
+    renderCategories(view);
+    renderDistribution(view);
+    renderStudentTable(view);
+    renderAssessBars(allStudents);
+    renderAtRisk(allStudents);
+    renderRadar(allStudents);
+  }
+
+  // LOAD FROM PASTE
+  function loadFromPaste() {
+    const text = document.getElementById("csv-paste").value.trim();
+    if (!text) return alert("Sila tampal kandungan CSV terlebih dahulu.");
+    const parsed = parseCSV(text);
+    if (!parsed.length) return alert("Tiada data pelajar ditemui. Pastikan CSV mengandungi lajur: Nama Pelajar, U1, U2, P1, A1, A2, A3");
+    allStudents = parsed;
+    document.getElementById("setup-banner").classList.remove("show");
+    setStatus("sync-dot", "", `${allStudents.length} pelajar dimuat (CSV)`);
+    document.getElementById("last-update").textContent = "Dikemaskini: " + new Date().toLocaleTimeString("ms-MY");
+    applyFilters();
+  }
+
+  function setStatus(dotClass, extraClass, msg) {
+    const dot = document.getElementById("sync-dot");
+    const txt = document.getElementById("sync-text");
+    dot.className = "sync-dot " + extraClass;
+    txt.textContent = msg;
+  }
+
+  // LOAD DATA
+  async function loadData() {
+    const url = getSheetUrl();
+    setStatus("sync-dot","loading","Menyambung...");
+    document.getElementById("loading-overlay").style.display = "flex";
+    const candidates = [
+      { label:"direct",          url },
+      { label:"allorigins-get",  url:"https://api.allorigins.win/get?url="+encodeURIComponent(url), json:true },
+      { label:"allorigins-raw",  url:"https://api.allorigins.win/raw?url="+encodeURIComponent(url) },
+    ];
+    for (const c of candidates) {
+      try {
+        const resp = await fetch(c.url, { cache:"no-store", signal:AbortSignal.timeout(8000) });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        let text;
+        if (c.json) { const j = await resp.json(); text = j.contents || ""; }
+        else         { text = await resp.text(); }
+        if (text.trim().startsWith("<!")) throw new Error("CORS block");
+        const parsed = parseCSV(text);
+        if (!parsed.length) throw new Error("Tiada baris data");
+        allStudents = parsed;
+        setStatus("sync-dot","",`${allStudents.length} pelajar dimuat`);
+        document.getElementById("last-update").textContent = "Dikemaskini: " + new Date().toLocaleTimeString("ms-MY");
+        document.getElementById("setup-banner").classList.remove("show");
+        document.getElementById("loading-overlay").style.display = "none";
+        applyFilters();
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(loadData, REFRESH_MS);
+        return;
+      } catch(e) { continue; }
+    }
+    // All failed — use static data silently
+    document.getElementById("loading-overlay").style.display = "none";
+    if (allStudents.length) {
+      setStatus("sync-dot","",`${allStudents.length} pelajar dimuat`);
+    } else {
+      setStatus("sync-dot","error","Gagal muat data");
+      document.getElementById("setup-banner").classList.add("show");
+    }
+  }
+
+  // EVENT LISTENERS
+  document.getElementById("f-assessment").addEventListener("change", applyFilters);
+  document.getElementById("f-category").addEventListener("change", applyFilters);
+  document.getElementById("f-search").addEventListener("input", applyFilters);
+  document.getElementById("sort-select").addEventListener("change", applyFilters);
+
+  // INIT
+  window.addEventListener("DOMContentLoaded", () => {
+    localStorage.setItem(STORAGE_KEY, DEFAULT_SHEET);
+    document.getElementById("sheet-url-input").value = DEFAULT_SHEET;
+    document.getElementById("setup-banner").classList.remove("show");
+
+    // Load static data immediately
+    const staticStudents = parseCSV(STATIC_CSV);
+    if (staticStudents.length) {
+      allStudents = staticStudents;
+      setStatus("sync-dot","loading",`${allStudents.length} pelajar (sedang refresh...)`);
+      document.getElementById("last-update").textContent = "Data statik";
+      applyFilters();
+    }
+
+    // Try live fetch in background
+    loadData();
+  });
+</script>
+</body>
+</html>
